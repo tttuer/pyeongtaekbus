@@ -80,7 +80,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 // 글 수정 버튼의 링크 설정
                 document.getElementById("editButton").onclick = function () {
-                    window.location.href = `/qa/update?id=${id}`;
+                    // 비밀번호 확인 모달 표시
+                    const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+                    passwordModal.show();
                 };
 
             } else {
@@ -101,4 +103,49 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Quill 내용 변화에 따라 높이 자동 조정
     quill.on('text-change', adjustQuillHeight);
+
+    // 비밀번호 확인 버튼 이벤트 리스너
+    document.getElementById("confirmPasswordBtn").addEventListener("click", async function () {
+        const passwordInput = document.getElementById("passwordInput");
+        const passwordError = document.getElementById("passwordError");
+        const password = passwordInput.value.trim();
+
+        if (!password) {
+            passwordError.textContent = "비밀번호를 입력해주세요.";
+            passwordError.style.display = "block";
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/qas/${id}/check_password?password=${encodeURIComponent(password)}`);
+            
+            if (response.ok) {
+                // 비밀번호 확인 성공 - 수정 페이지로 이동
+                window.location.href = `/qa/update?id=${id}`;
+            } else {
+                // 비밀번호 확인 실패
+                passwordError.textContent = "비밀번호가 일치하지 않습니다.";
+                passwordError.style.display = "block";
+                passwordInput.value = "";
+                passwordInput.focus();
+            }
+        } catch (error) {
+            console.error("Password verification error:", error);
+            passwordError.textContent = "서버와 통신 중 문제가 발생했습니다.";
+            passwordError.style.display = "block";
+        }
+    });
+
+    // 모달이 닫힐 때 입력값과 에러 메시지 초기화
+    document.getElementById("passwordModal").addEventListener("hidden.bs.modal", function () {
+        document.getElementById("passwordInput").value = "";
+        document.getElementById("passwordError").style.display = "none";
+    });
+
+    // 비밀번호 입력창에서 Enter 키 입력 시 확인 버튼 클릭
+    document.getElementById("passwordInput").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+            document.getElementById("confirmPasswordBtn").click();
+        }
+    });
 });
