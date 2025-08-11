@@ -3,6 +3,7 @@ from datetime import datetime
 import pytz
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi import Query
+from utils.logger import log
 from sqlalchemy import desc
 from sqlmodel import Session, select, func
 from starlette.responses import RedirectResponse
@@ -70,6 +71,7 @@ async def get_notice(id: int, session: Session = Depends(get_session)) -> Notice
     notice = session.get(Notice, id)
 
     if not notice:
+        log.error(f"공지사항을 찾을 수 없음: ID {id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Notice not found",
@@ -113,6 +115,7 @@ async def delete_notice(id: int, user: str = Depends(authenticate), session: Ses
         return {
             'message': 'Notice deleted',
         }
+    log.error(f"삭제할 공지사항을 찾을 수 없음: ID {id}")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Customer QA not found",
@@ -135,6 +138,7 @@ async def update_notice(id: int, update_notice: NoticeUpdate, user: str = Depend
 
         return notice
 
+    log.error(f"수정할 공지사항을 찾을 수 없음: ID {id}")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Notice not found",
@@ -143,6 +147,7 @@ async def update_notice(id: int, update_notice: NoticeUpdate, user: str = Depend
 
 def raise_exception(empty_val, message: str):
     if empty_val == '':
+        log.error(f"입력 값 검증 오류: {message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message,
@@ -151,6 +156,7 @@ def raise_exception(empty_val, message: str):
 
 def check_admin(user: str):
     if user != 'bsbus':
+        log.error(f"관리자 권한 없음: {user}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",

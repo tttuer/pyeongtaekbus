@@ -1,6 +1,7 @@
 import base64
 
 from fastapi import APIRouter, UploadFile, File, Form, Response
+from utils.logger import log
 from fastapi.responses import RedirectResponse
 
 from auth.authenticate import authenticate, check_admin
@@ -59,6 +60,7 @@ async def get_schedule(id: int, session: Session = Depends(get_session)):
     schedule = session.get(BusSchedule, id)
 
     if not schedule:
+        log.error(f"버스 시간표를 찾을 수 없음: ID {id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
 
     # QAPublic 또는 QAWithAnswer 모델로 반환
@@ -91,6 +93,7 @@ async def create_schedule(
     # 파일이 존재하는 경우 이미지 파일인지 확인
     if image1 and image1.filename != '':
         if not image1.content_type.startswith("image/"):
+            log.error(f"버스 시간표 생성 - 잘못된 파일 형식: {image1.content_type}, 파일명: {image1.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -102,6 +105,7 @@ async def create_schedule(
         image1_filename = None
     if image2 and image2.filename != '':
         if not image2.content_type.startswith("image/"):
+            log.error(f"버스 시간표 생성 - 잘못된 파일 형식: {image2.content_type}, 파일명: {image2.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -113,6 +117,7 @@ async def create_schedule(
         image2_filename = None
     if image3 and image3.filename != '':
         if not image3.content_type.startswith("image/"):
+            log.error(f"버스 시간표 생성 - 잘못된 파일 형식: {image3.content_type}, 파일명: {image3.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -180,6 +185,7 @@ async def update_schedule(
 
     schedule = session.get(BusSchedule, id)
     if not schedule:
+        log.error(f"버스 시간표 수정 - 존재하지 않는 ID: {id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Customer QA not found",
@@ -197,6 +203,7 @@ async def update_schedule(
 
     if image1:
         if not image1.content_type.startswith("image/"):
+            log.error(f"버스 시간표 수정 - 잘못된 파일 형식: {image1.content_type}, 파일명: {image1.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -204,7 +211,8 @@ async def update_schedule(
         schedule.image_data1 = await image1.read()
         schedule.image_name1 = image1.filename
     if image2:
-        if not image1.content_type.startswith("image/"):
+        if not image2.content_type.startswith("image/"):
+            log.error(f"버스 시간표 수정 - 잘못된 파일 형식: {image2.content_type}, 파일명: {image2.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -212,7 +220,8 @@ async def update_schedule(
         schedule.image_data2 = await image2.read()
         schedule.image_name2 = image2.filename
     if image3:
-        if not image1.content_type.startswith("image/"):
+        if not image3.content_type.startswith("image/"):
+            log.error(f"버스 시간표 수정 - 잘못된 파일 형식: {image3.content_type}, 파일명: {image3.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -232,6 +241,7 @@ async def update_schedule(
 
 def raise_exception(empty_val, message: str):
     if empty_val == '':
+        log.error(f"버스 시간표 유효성 검사 실패: {message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message,

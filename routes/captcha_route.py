@@ -1,6 +1,7 @@
 # captcha_routes.py
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import StreamingResponse
+from utils.logger import log
 from captcha.image import ImageCaptcha  # captcha 라이브러리 사용
 from io import BytesIO
 import random
@@ -31,5 +32,6 @@ async def get_captcha_image():
 @captcha_router.post("/submit")
 async def submit_form(captcha: str = Form(...)):
     if captcha != captcha_router.captcha_text:
+        log.error(f"CAPTCHA 검증 실패: 입력값 '{captcha}', 기대값 '{captcha_router.captcha_text}'")
         raise HTTPException(status_code=400, detail="Invalid CAPTCHA")
     return {"message": "CAPTCHA verified successfully!"}

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from fastapi import HTTPException, status
 from jose import jwt, JWTError
+from utils.logger import log
 
 from database.connection import Settings
 
@@ -31,7 +32,8 @@ def verify_access_token(token: str):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='No access token supplied')
         return datetime.utcnow() < datetime.utcfromtimestamp(expire)
 
-    except JWTError:
+    except JWTError as e:
+        log.error(f"JWT 토큰 검증 실패: {e}")
         return RedirectResponse(url="/adm/login")
 
 
@@ -47,5 +49,6 @@ def get_access_token(token: str):
 
         return data
 
-    except JWTError:
+    except JWTError as e:
+        log.error(f"JWT 토큰 디코딩 실패: {e}")
         return RedirectResponse(url="/adm/login")

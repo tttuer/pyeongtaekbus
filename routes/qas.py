@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytz
 from fastapi import APIRouter, UploadFile, File, Form
+from utils.logger import log
 from fastapi.responses import RedirectResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import selectinload
@@ -104,8 +105,10 @@ async def get_qa(id: int, password: str = 'default-password', session: Session =
     qa = session.exec(statement).first()
 
     if not qa:
+        log.error(f"QA를 찾을 수 없음: ID {id}")
         raise HTTPException(status_code=404, detail="QA not found")
     if qa.hidden and password != 'default-password' and qa.password != password:
+        log.error(f"QA 비밀번호 불일치: ID {id}, 입력 비밀번호: {password[:2]}***")
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Password mismatch")
 
     # attachment를 Base64로 인코딩
@@ -149,6 +152,7 @@ async def create_qa(
     # 파일이 존재하는 경우 이미지 파일인지 확인
     if attachment and attachment.filename != '':
         if not attachment.content_type.startswith("image/"):
+            log.error(f"QA 생성 - 잘못된 파일 형식: {attachment.content_type}, 파일명: {attachment.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -195,10 +199,12 @@ async def delete_qa(id: int, password: str, session: Session = Depends(get_sessi
             return {
                 'message': 'Customer QA deleted',
             }
+        log.error(f"QA 삭제 - 비밀번호 오류: ID {id}, 입력 비밀번호: {password[:2]}***")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password is incorrect",
         )
+    log.error(f"QA 삭제 - 존재하지 않는 ID: {id}")
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Customer QA not found",
@@ -220,6 +226,7 @@ async def update_qa(
 ) -> QA:
     qa = session.get(QA, id)
     if not qa:
+        log.error(f"QA 수정 - 존재하지 않는 ID: {id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Customer QA not found",
@@ -229,6 +236,7 @@ async def update_qa(
     if keepAttachment == "false":
         if attachment.filename != '':  # 새 파일이 업로드된 경우
             if not attachment.content_type.startswith("image/"):
+                log.error(f"QA 수정 - 잘못된 파일 형식: {attachment.content_type}, 파일명: {attachment.filename}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="이미지 파일만 업로드할 수 있습니다."
@@ -261,6 +269,7 @@ async def check_password(id: int, password: str, session: Session = Depends(get_
     qa = session.get(QA, id)
 
     if not qa or qa.password != password:
+        log.error(f"QA 비밀번호 확인 실패: ID {id}, 입력 비밀번호: {password[:2]}***")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Password incorrect",
@@ -271,6 +280,7 @@ async def check_password(id: int, password: str, session: Session = Depends(get_
 async def read(id: int, session: Session = Depends(get_session)):
     qa = session.get(QA, id)
     if not qa:
+        log.error(f"QA 조회수 증가 - 존재하지 않는 ID: {id}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="QA not found",
@@ -284,6 +294,7 @@ async def read(id: int, session: Session = Depends(get_session)):
 
 def raise_exception(empty_val, message: str):
     if empty_val == '':
+        log.error(f"QA 유효성 검사 실패: {message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message,

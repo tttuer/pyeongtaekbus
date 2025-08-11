@@ -2,6 +2,7 @@ import base64
 from functools import lru_cache
 
 from fastapi import APIRouter, UploadFile, File, Form, Response
+from utils.logger import log
 from fastapi.responses import RedirectResponse
 
 from auth.authenticate import authenticate, check_admin
@@ -51,6 +52,7 @@ async def get_ddock(id: int, user: str = Depends(authenticate), session: Session
     ddock = session.get(Ddock, id)
 
     if not ddock:
+        log.error(f"또똑 정보를 찾을 수 없음: ID {id}")
         raise HTTPException(status_code=404, detail="Schedule not found")
 
     # QAPublic 또는 QAWithAnswer 모델로 반환
@@ -135,6 +137,7 @@ async def update_ddock(
 
     ddock = session.get(Ddock, id)
     if not ddock:
+        log.error(f"또똑 수정 - 존재하지 않는 ID: {id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ddock not found",
@@ -146,6 +149,7 @@ async def update_ddock(
 
     if image:
         if not image.content_type.startswith("image/"):
+            log.error(f"또똑 수정 - 잘못된 파일 형식: {image.content_type}, 파일명: {image.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미지 파일만 업로드할 수 있습니다."
@@ -189,6 +193,7 @@ async def update_order(
 
 def raise_exception(empty_val, message: str):
     if empty_val == '':
+        log.error(f"또똑 유효성 검사 실패: {message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message,
