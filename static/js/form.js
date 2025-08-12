@@ -12,11 +12,44 @@ document.addEventListener("DOMContentLoaded", function () {
     const captchaFeedback = document.querySelector(".captcha"); // 정확히 지정
     const captchaImage = document.getElementById("captchaImage");
     const refreshCaptchaButton = document.getElementById("refreshCaptcha");
+    
+    let currentCaptchaId = null;
+
+    // CAPTCHA 이미지 로드 함수
+    function loadCaptcha() {
+        const timestamp = new Date().getTime();
+        const imgElement = new Image();
+        
+        imgElement.onload = function() {
+            captchaImage.src = this.src;
+        };
+        
+        imgElement.onerror = function() {
+            console.error('Failed to load captcha image');
+        };
+        
+        // 이미지 로드 시 응답 헤더에서 captcha_id 가져오기를 위해 fetch 사용
+        fetch(`/captcha_image?t=${timestamp}`)
+            .then(response => {
+                currentCaptchaId = response.headers.get("X-Captcha-ID");
+                return response.blob();
+            })
+            .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                captchaImage.src = imageUrl;
+            })
+            .catch(error => {
+                console.error('Error loading captcha:', error);
+                // 폴백: 직접 이미지 src 설정
+                captchaImage.src = `/captcha_image?t=${timestamp}`;
+            });
+    }
 
     // CAPTCHA 새로고침 기능
-    refreshCaptchaButton.addEventListener("click", function () {
-        captchaImage.src = `/captcha_image?${new Date().getTime()}`;
-    });
+    refreshCaptchaButton.addEventListener("click", loadCaptcha);
+    
+    // 페이지 로드 시 초기 캡차 로드
+    loadCaptcha();
 
     // Quill 높이 조절 함수
     function adjustQuillHeight() {
@@ -46,7 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: new URLSearchParams({captcha: captchaValue}),
+                body: new URLSearchParams({
+                    captcha: captchaValue,
+                    captcha_id: currentCaptchaId
+                }),
             });
 
             // CAPTCHA 검증 결과 처리
@@ -75,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 captchaFeedback.classList.add("d-block");
                 captchaFeedback.textContent = "자동등록방지 문자가 올바르지 않습니다. 다시 입력해주세요.";
                 captchaInput.value = "";  // 입력 초기화
-                captchaImage.src = `/captcha_image?${new Date().getTime()}`;  // CAPTCHA 이미지 새로고침
+                loadCaptcha();  // CAPTCHA 이미지 새로고침
                 form.classList.add('was-validated');
             }
         });

@@ -11,8 +11,8 @@ database_user = os.getenv("DATABASE_USER")
 database_password = os.getenv("DATABASE_PASSWORD")
 
 # MySQL 데이터베이스 설정
-database_connection_string = 'mysql+mysqlconnector://test_user:test_password@localhost:3306/pyeongtaek'
-# database_connection_string = f'mysql+mysqlconnector://{settings.db_user}:{settings.db_password}@mysql:3306/pyeongtaek'
+# database_connection_string = 'mysql+mysqlconnector://test_user:test_password@localhost:3306/pyeongtaek'
+database_connection_string = f'mysql+mysqlconnector://{settings.db_user}:{settings.db_password}@mysql:3306/pyeongtaek'
 # database_connection_string = f'mysql+mysqlconnector://{database_user}:{database_password}@localhost:3306/pyeongtaek'
 engine_url = create_engine(database_connection_string, echo=True)
 
