@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     kakao_api_key: str
     db_user: str
     db_password: str
+    db_host: str
 
     class Config:
         env_file = ".env"
