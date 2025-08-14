@@ -68,9 +68,13 @@ function showPasswordModal(id) {
     
     const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
     
-    // 모달이 닫힐 때 뒤로가기
+    let passwordVerified = false;
+    
+    // 모달이 닫힐 때 뒤로가기 (비밀번호 확인 성공한 경우 제외)
     document.getElementById('passwordModal').addEventListener('hidden.bs.modal', function () {
-        history.back();
+        if (!passwordVerified) {
+            history.back();
+        }
     });
     
     // 확인 버튼 클릭 이벤트
@@ -88,7 +92,8 @@ function showPasswordModal(id) {
             const response = await fetch(`/api/qas/${id}/check_password?password=${encodeURIComponent(password)}`);
             
             if (response.ok) {
-                // 비밀번호 확인 성공 - 모달 닫고 폼 채우기
+                // 비밀번호 확인 성공 - 플래그 설정 후 모달 닫고 폼 채우기
+                passwordVerified = true;
                 passwordModal.hide();
                 populateFormFields();
                 setRedirectUrl();
