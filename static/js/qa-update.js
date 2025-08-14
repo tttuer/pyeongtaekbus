@@ -11,19 +11,109 @@ async function loadQAData() {
             const response = await fetch(`/api/qas/${id}`);
             if (response.ok) {
                 qaData = await response.json(); // 데이터를 qaData 변수에 저장
-                populateFormFields(); // 폼 필드 채우기
-
-                // qaData.qa_type에 따라 redirect_url을 설정
-                const redirectUrlInput = document.getElementById("redirect_url");
-                redirectUrlInput.value = qaData.qa_type === "CUSTOMER" ? "/qa" : "/lost";
+                
+                // 비밀글이 아닌 경우에만 비밀번호 확인
+                if (!qaData.hidden) {
+                    showPasswordModal(id);
+                } else {
+                    // 비밀글인 경우 바로 폼 채우기 (이미 detail에서 확인했음)
+                    populateFormFields();
+                    setRedirectUrl();
+                }
             } else {
                 alert("글을 불러오는 데 실패했습니다.");
+                history.back();
             }
         } catch (error) {
             console.error("Error fetching QA:", error);
             alert("서버와 통신 중 문제가 발생했습니다.");
+            history.back();
         }
     }
+}
+
+// redirect_url 설정 함수
+function setRedirectUrl() {
+    const redirectUrlInput = document.getElementById("redirect_url");
+    redirectUrlInput.value = qaData.qa_type === "CUSTOMER" ? "/qa" : "/lost";
+}
+
+// 비밀번호 확인 모달을 표시하는 함수 (비밀글이 아닌 경우)
+function showPasswordModal(id) {
+    // 비밀번호 입력 모달 HTML을 동적으로 생성
+    const modalHtml = `
+        <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">비밀번호 확인</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="passwordInput" class="form-label">글 작성 시 입력한 비밀번호를 입력해주세요</label>
+                        <input type="password" class="form-control" id="passwordInput" placeholder="비밀번호">
+                        <div id="passwordError" class="text-danger mt-2" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="button" class="btn btn-primary" id="confirmPasswordBtn">확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 모달을 body에 추가
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+    
+    // 모달이 닫힐 때 뒤로가기
+    document.getElementById('passwordModal').addEventListener('hidden.bs.modal', function () {
+        history.back();
+    });
+    
+    // 확인 버튼 클릭 이벤트
+    document.getElementById('confirmPasswordBtn').addEventListener('click', async function() {
+        const password = document.getElementById('passwordInput').value.trim();
+        const passwordError = document.getElementById('passwordError');
+        
+        if (!password) {
+            passwordError.textContent = "비밀번호를 입력해주세요.";
+            passwordError.style.display = "block";
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/qas/${id}/check_password?password=${encodeURIComponent(password)}`);
+            
+            if (response.ok) {
+                // 비밀번호 확인 성공 - 모달 닫고 폼 채우기
+                passwordModal.hide();
+                populateFormFields();
+                setRedirectUrl();
+            } else {
+                // 비밀번호 확인 실패
+                passwordError.textContent = "비밀번호가 일치하지 않습니다.";
+                passwordError.style.display = "block";
+                document.getElementById('passwordInput').value = "";
+                document.getElementById('passwordInput').focus();
+            }
+        } catch (error) {
+            console.error("Password verification error:", error);
+            passwordError.textContent = "서버와 통신 중 문제가 발생했습니다.";
+            passwordError.style.display = "block";
+        }
+    });
+    
+    // Enter 키 이벤트
+    document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('confirmPasswordBtn').click();
+        }
+    });
+    
+    passwordModal.show();
 }
 
 // 폼 필드에 데이터를 채워 넣는 함수

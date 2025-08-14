@@ -80,9 +80,14 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 // 글 수정 버튼의 링크 설정
                 document.getElementById("editButton").onclick = function () {
-                    // 비밀번호 확인 모달 표시
-                    const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-                    passwordModal.show();
+                    if (data.hidden) {
+                        // 비밀글인 경우: 비밀번호 확인 모달 표시
+                        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+                        passwordModal.show();
+                    } else {
+                        // 비밀글이 아닌 경우: 바로 수정 페이지로 이동
+                        window.location.href = `/qa/update?id=${id}`;
+                    }
                 };
 
             } else {
